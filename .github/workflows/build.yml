@@ -24,23 +24,23 @@ jobs:
 
       - name: Rebuild Android Environment
         run: |
-          # 1. Backup your C Engine and CMake config
-          mkdir -p /tmp/native_backup/cpp
-          cp -r android/app/src/main/cpp /tmp/native_backup/cpp || true
-          cp android/app/CMakeLists.txt /tmp/native_backup/CMakeLists.txt || true
+          # 1. Backup your C Engine and CMake config (Fixed paths to prevent nesting)
+          mkdir -p /tmp/native_backup
+          cp -r android/app/src/main/cpp /tmp/native_backup/ 2>/dev/null || true
+          cp android/app/CMakeLists.txt /tmp/native_backup/ 2>/dev/null || true
           
-          # 2. Delete the corrupted, manually-made android folder
+          # 2. Delete the corrupted android folder
           rm -rf android
           
           # 3. Ask Flutter to generate a flawless, modern Android wrapper
           flutter create --platforms android .
           
-          # 4. Restore your C Engine files to the new folder
-          mkdir -p android/app/src/main/cpp
-          cp -r /tmp/native_backup/cpp/* android/app/src/main/cpp/ 2>/dev/null || true
-          cp /tmp/native_backup/CMakeLists.txt android/app/CMakeLists.txt 2>/dev/null || true
+          # 4. Restore your C Engine files perfectly
+          mkdir -p android/app/src/main
+          cp -r /tmp/native_backup/cpp android/app/src/main/ 2>/dev/null || true
+          cp /tmp/native_backup/CMakeLists.txt android/app/ 2>/dev/null || true
           
-          # 5. Tell the new build.gradle.kts to compile your C++ code (Kotlin Syntax)
+          # 5. Tell the new build.gradle.kts to compile your C++ code
           cat << 'EOF' >> android/app/build.gradle.kts
           
           android {
