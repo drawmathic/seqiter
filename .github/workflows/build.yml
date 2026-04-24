@@ -22,37 +22,41 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Inject Android v2 Embedding Wrapper
+      - name: Rebuild Android Environment
         run: |
-          mkdir -p android/app/src/main/kotlin/com/example/fractal_explorer
+          # 1. Backup your C Engine and CMake config
+          mkdir -p /tmp/native_backup
+          cp -r android/app/src/main/cpp /tmp/native_backup/cpp || true
+          cp android/app/CMakeLists.txt /tmp/native_backup/CMakeLists.txt || true
           
-          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.fractal_explorer">
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-              <application android:label="Fractal Engine" android:name="${applicationName}" android:icon="@mipmap/ic_launcher">
-                  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:theme="@android:style/Theme.Black.NoTitleBar" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-                  <meta-data android:name="flutterEmbedding" android:value="2" />
-              </application>
-          </manifest>
-          EOF
+          # 2. Delete the corrupted, manually-made android folder
+          rm -rf android
           
-          cat << 'EOF' > android/app/src/main/kotlin/com/example/fractal_explorer/MainActivity.kt
-          package com.example.fractal_explorer
+          # 3. Ask Flutter to generate a flawless, modern Android wrapper
+          flutter create --platforms android .
           
-          import io.flutter.embedding.android.FlutterActivity
+          # 4. Restore your C Engine files to the new folder
+          mkdir -p android/app/src/main/cpp
+          cp -r /tmp/native_backup/cpp/* android/app/src/main/cpp/ 2>/dev/null || true
+          cp /tmp/native_backup/CMakeLists.txt android/app/CMakeLists.txt 2>/dev/null || true
           
-          class MainActivity: FlutterActivity() {
+          # 5. Tell the new build.gradle to compile your C++ code
+          cat << 'EOF' >> android/app/build.gradle
+          
+          android {
+              externalNativeBuild {
+                  cmake {
+                      path "CMakeLists.txt"
+                  }
+              }
           }
           EOF
+          
+          # 6. Inject Storage Permissions into the new AndroidManifest
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' android/app/src/main/AndroidManifest.xml
+
+      - name: Install Dependencies
+        run: flutter pub get
 
       - name: Compile Native C and Dart
         run: flutter build apk --release
