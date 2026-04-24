@@ -25,7 +25,7 @@ jobs:
       - name: Rebuild Android Environment
         run: |
           # 1. Backup your C Engine and CMake config
-          mkdir -p /tmp/native_backup
+          mkdir -p /tmp/native_backup/cpp
           cp -r android/app/src/main/cpp /tmp/native_backup/cpp || true
           cp android/app/CMakeLists.txt /tmp/native_backup/CMakeLists.txt || true
           
@@ -40,13 +40,13 @@ jobs:
           cp -r /tmp/native_backup/cpp/* android/app/src/main/cpp/ 2>/dev/null || true
           cp /tmp/native_backup/CMakeLists.txt android/app/CMakeLists.txt 2>/dev/null || true
           
-          # 5. Tell the new build.gradle to compile your C++ code
-          cat << 'EOF' >> android/app/build.gradle
+          # 5. Tell the new build.gradle.kts to compile your C++ code (Kotlin Syntax)
+          cat << 'EOF' >> android/app/build.gradle.kts
           
           android {
               externalNativeBuild {
                   cmake {
-                      path "CMakeLists.txt"
+                      path = file("CMakeLists.txt")
                   }
               }
           }
